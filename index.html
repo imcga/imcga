@@ -2,8 +2,8 @@
 <html lang="zh-CN">
 <head>
     <link rel="manifest" href="manifest.json">
-    
     <link rel="apple-touch-icon" href="icon.png">
+    <link rel="icon" href="icon.png" type="image/png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>H5小程序</title>
@@ -16,20 +16,19 @@
         }
 
         body {
-            /* 模仿截图中的浅灰色背景 */
-            background-color: #efefef; 
+            /* 提取自原文件的背景色 */
+            background-color: rgb(237, 237, 237); 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             display: flex;
             justify-content: center;
-            /* 确保页面至少占满全屏高度 */
             min-height: 100vh; 
-            color: #333;
+            color: rgb(0, 0, 0);
         }
 
         /* 移动端视图容器 */
         .container {
             width: 100%;
-            max-width: 480px; /* 限制最大宽度，使其在PC上也保持手机比例 */
+            max-width: 480px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -37,12 +36,13 @@
             position: relative;
         }
 
-        /* 标题样式 */
+        /* 标题样式 - 完全复刻 */
         .header-title {
-            font-size: 32px;
-            font-weight: 600;
-            margin-bottom: 40px;
-            letter-spacing: 1px;
+            font-size: 26px;
+            font-weight: normal;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            color: rgb(0, 0, 0);
         }
 
         /* 按钮组容器 */
@@ -50,56 +50,60 @@
             width: 100%;
             display: flex;
             flex-direction: column;
-            gap: 18px; /* 按钮之间的间距 */
+            align-items: center;
         }
 
-        /* 单个按钮样式 */
+        /* 单个按钮样式 - 完全提取自原文件的内联样式 */
         .nav-btn {
-            width: 100%;
-            padding: 18px 20px;
-            font-size: 18px;
-            color: #7a7a7a; /* 模仿截图中的灰色文字 */
-            background-color: #f7f7f7;
-            border: 1px solid #ececec;
-            border-radius: 35px; /* 药丸形状 */
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04); /* 柔和的底部阴影 */
+            width: 250px;
+            height: 50px;
+            margin: 5px 0;
+            padding: 0 10px;
+            font-size: 20px;
+            color: rgb(142, 142, 142);
+            background-color: transparent; /* 原文件使用 btn-clear 无背景色 */
+            border: 1px solid rgb(243, 243, 243);
+            border-radius: 15px; 
+            box-shadow: 1px 1px 5px rgb(191, 191, 191); 
             cursor: pointer;
             transition: all 0.2s ease;
             text-align: center;
             text-decoration: none;
-            display: block;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         /* 按钮点击时的视觉反馈 */
         .nav-btn:active {
-            transform: translateY(2px);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
-            background-color: #f0f0f0;
+            opacity: 0.6;
+            box-shadow: none;
         }
 
-        /* 底部信息框样式 */
+        /* 底部信息框样式 - 对应原文件最下方的长条文字说明 */
         .footer-box {
-            margin-top: auto; /* 自动将底部框推到最下方 */
-            width: 100%;
-            padding: 16px;
-            border: 1px solid #e0e0e0;
-            border-radius: 12px;
-            text-align: center;
+            margin-top: auto; 
+            width: 250px;
+            height: 50px;
+            border: 1px solid rgb(243, 243, 243);
+            border-radius: 15px;
             background-color: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        /* 修复屏幕过矮时底部框与按钮重叠的问题 */
         @media (min-height: 600px) {
             .footer-box {
                 position: absolute;
                 bottom: 40px;
-                width: calc(100% - 40px);
             }
         }
 
         .footer-box p {
-            color: #888;
-            font-size: 14px;
+            color: rgb(142, 142, 142);
+            font-size: 10px; /* 原文件底部文字为 10px */
+            text-align: center;
         }
     </style>
 </head>
@@ -112,6 +116,7 @@
             <a href="./screen/screen.html" class="nav-btn">屏幕比例计算器</a>
             <a href="./rmb/rmb.html" class="nav-btn">人民币数字转换</a>
             <a href="./color_mixer/color_mixer.html" class="nav-btn">颜色混色模拟器</a>
+            <a href="./chicken_soup/chicken_soup.html" class="nav-btn">心灵（乌）鸡汤</a>
         </div>
 
         <div class="footer-box">
