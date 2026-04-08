@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon.png">
@@ -7,6 +8,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>H5小程序</title>
+<!-- -------------------------------------------------- ↓ style ↓ -------------------------------------------------- -->
     <style>
         /* 基础重置与排版 */
         * {
@@ -60,8 +62,8 @@
             margin: 5px 0;
             padding: 0 10px;
             font-size: 20px;
-            color: rgb(142, 142, 142);
-            background-color: transparent; /* 原文件使用 btn-clear 无背景色 */
+            color: rgb(0, 0, 0);
+            background-color: #fff;
             border: 1px solid rgb(243, 243, 243);
             border-radius: 15px; 
             box-shadow: 1px 1px 5px rgb(191, 191, 191); 
@@ -106,23 +108,27 @@
             text-align: center;
         }
     </style>
+<!-- -------------------------------------------------- ↑ style ↑ -------------------------------------------------- -->
 </head>
+
+<!-- -------------------------------------------------- ↓ body ↓ -------------------------------------------------- -->
 <body>
 
     <div class="container">
-        <h1 class="header-title">H5小程序</h1>
+        <h1 class="header-title"></h1>
 
         <div class="button-group">
-            <a href="./screen/screen.html" class="nav-btn">屏幕比例计算器</a>
+            <a href="./start_video/start_video.html" class="nav-btn">启动按手印LED模拟</a>
+            <a href="./screen/screen.html" class="nav-btn">屏幕像素计算器</a>
             <a href="./rmb/rmb.html" class="nav-btn">人民币数字转换</a>
             <a href="./color_mixer/color_mixer.html" class="nav-btn">颜色混色模拟器</a>
-            <a href="./start_video/start_video.html" class="nav-btn">启动视频高度参考</a>
             <a href="./number_to_qr/number_to_qr.html" class="nav-btn">数字转二维码</a>
             <a href="./chicken_soup/chicken_soup.html" class="nav-btn">心灵（乌）鸡汤</a>
         </div>
 
         <div class="footer-box">
-            <p>本程序均由AI完成</p>
+            <p>本程序均由AI完成<br>
+            结果仅供参考，不保证准确性</p>
         </div>
     </div>
 
@@ -132,4 +138,6 @@
       }
     </script>
 </body>
+<!-- -------------------------------------------------- ↑ body ↑ -------------------------------------------------- -->
+
 </html>
