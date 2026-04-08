@@ -1,6 +1,6 @@
 {
-  "name": "我的离线小程序",
-  "short_name": "小程序",
+  "name": "H5小程序",
+  "short_name": "H5小程序",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
