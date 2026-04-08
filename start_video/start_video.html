@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>屏幕比例与高度计算</title>
+    <style>
+        /* 基础重置与排版 */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: rgb(237, 237, 237);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 20px;
+        }
+
+        .header-title {
+            font-size: 26px;
+            font-weight: normal;
+            margin-bottom: 20px;
+        }
+
+        /* ---------------- 输入框与控制区域 ---------------- */
+        .controls-group {
+            width: 100%;
+            background: #fff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 1px 1px 5px rgb(191, 191, 191);
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .input-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .input-row label {
+            font-size: 16px;
+            color: #555;
+        }
+
+        .input-row input[type="number"] {
+            width: 100px;
+            height: 35px;
+            text-align: center;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            outline: none;
+            background-color: #f9f9f9;
+        }
+        .input-row input[type="number"]:focus { border-color: #0891FA; background-color: #fff; }
+
+        /* 上传图片区域 */
+        .upload-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+        .upload-row label {
+            font-size: 16px;
+            color: #555;
+        }
+        /* 隐藏原生上传按钮 */
+        #inp-upload { display: none; }
+        .upload-btn {
+            width: 100px;
+            height: 35px;
+            background-color: transparent;
+            border: 1px solid rgb(243, 243, 243);
+            border-radius: 8px; 
+            box-shadow: 1px 1px 5px rgb(191, 191, 191); 
+            color: rgb(142, 142, 142);
+            font-size: 14px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            text-align: center;
+        }
+        .upload-btn:active { box-shadow: none; opacity: 0.6; }
+
+        /* ---------------- 可视化画布区域 ---------------- */
+        .canvas-box {
+            width: 100%;
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 1px 1px 5px rgb(191, 191, 191);
+            display: flex;
+            justify-content: center;
+            align-items: flex-end; /* 让所有元素站在同一条地平线上 */
+            padding: 20px;
+            overflow: hidden;
+            transition: height 0.3s ease; /* 画布高度变化的丝滑过渡 */
+        }
+
+        /* 画布内部的缩放容器 */
+        #render-area {
+            display: flex;
+            align-items: flex-end;
+            transform-origin: bottom center;
+            transition: all 0.3s ease; /* 图形尺寸变化的丝滑过渡 */
+        }
+
+        /* 人物参照（左侧） */
+        .man-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-right: 2px; 
+            position: relative;
+        }
+        #man-img {
+            width: auto;
+            display: block;
+        }
+        .man-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+            position: absolute;
+            bottom: -20px;
+        }
+
+        /* 屏幕与底座的组合体（右侧） */
+        .screen-structure {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 屏幕框 - 增加相对定位以便放置上传的图片 */
+        #screen-rect {
+            background-color: #0891FA;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            text-align: center;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+            white-space: nowrap; 
+            overflow: hidden;
+            position: relative; 
+        }
+
+        /* 核心修改：将 object-fit 改为 contain，使图片完整显示不被裁剪 */
+        #uploaded-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* <-- 修改了这里 */
+            z-index: 1; /* 放在蓝色背景之上 */
+            display: none; /* 初始隐藏 */
+        }
+
+        /* 尺寸文字图层，确保始终在图片之上显示 */
+        #screen-text {
+            position: relative;
+            z-index: 2; /* 放在上传图片之上，可以加点阴影让文字在复杂图片上也能看清 */
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+        }
+
+        /* 底座框 */
+        #base-rect {
+            background-color: #555555;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        /* 返回按钮 */
+        .back-btn {
+            margin-top: 20px;
+            width: 250px;
+            height: 50px;
+            font-size: 20px;
+            color: rgb(142, 142, 142);
+            background-color: transparent;
+            border: 1px solid rgb(243, 243, 243);
+            border-radius: 15px; 
+            box-shadow: 1px 1px 5px rgb(191, 191, 191); 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-decoration: none;
+        }
+        .back-btn:active { box-shadow: none; opacity: 0.6; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 class="header-title">屏幕比例可视化</h1>
+
+    <div class="controls-group">
+        <div class="input-row">
+            <label>屏幕宽度 (米)</label>
+            <input type="number" id="inp-width" value="10" step="0.5" min="0.1">
+        </div>
+        <div class="input-row">
+            <label>屏幕高度 (米)</label>
+            <input type="number" id="inp-height" value="3" step="0.5" min="0.1">
+        </div>
+        <div class="input-row">
+            <label>底座高度 (米)</label>
+            <input type="number" id="inp-base" value="0.5" step="0.1" min="0">
+        </div>
+        
+        <div class="upload-row">
+            <label>上传屏幕图片</label>
+            <label for="inp-upload" class="upload-btn">选择图片</label>
+            <input type="file" id="inp-upload" accept="image/*">
+        </div>
+    </div>
+
+    <div class="canvas-box" id="canvas-box">
+        <div id="render-area">
+            <div class="man-wrapper">
+                <img id="man-img" src="man.png" alt="人">
+                <span class="man-label">1.75m</span>
+            </div>
+            
+            <div class="screen-structure">
+                <div id="screen-rect">
+                    <img id="uploaded-img" src="" alt="上传图片">
+                    <span id="screen-text"></span>
+                </div>
+                <div id="base-rect"><span id="base-text"></span></div>
+            </div>
+        </div>
+    </div>
+
+    <a href="../index.html" class="back-btn">返回主页</a>
+</div>
+
+<script>
+    // 获取元素
+    const inpW = document.getElementById('inp-width');
+    const inpH = document.getElementById('inp-height');
+    const inpB = document.getElementById('inp-base');
+    const inpUpload = document.getElementById('inp-upload');
+    
+    const canvasBox = document.getElementById('canvas-box');
+    const renderArea = document.getElementById('render-area');
+    const screenRect = document.getElementById('screen-rect');
+    const uploadedImg = document.getElementById('uploaded-img');
+    const baseRect = document.getElementById('base-rect');
+    const manImg = document.getElementById('man-img');
+    
+    const screenText = document.getElementById('screen-text');
+    const baseText = document.getElementById('base-text');
+
+    // 真实物理数据 (米)
+    const MAN_REAL_HEIGHT = 1.75; 
+    const MAN_REAL_WIDTH = 1.0; 
+    const GAP_METER = 0.05;      
+
+    function updateView() {
+        let w = parseFloat(inpW.value) || 0;
+        let h = parseFloat(inpH.value) || 0;
+        let b = parseFloat(inpB.value) || 0;
+
+        if (w <= 0 || h <= 0) return;
+
+        // 1. 计算场景总物理尺寸(米)
+        let totalWidthMeter = MAN_REAL_WIDTH + GAP_METER + w;
+        let totalHeightMeter = Math.max(h + b, MAN_REAL_HEIGHT);
+
+        // 2. 获取画布的可用像素宽度 (减去左右 20px padding)
+        let maxPxWidth = canvasBox.clientWidth - 40; 
+
+        // 3. 缩放比例
+        let scale = maxPxWidth / totalWidthMeter;
+        
+        if (scale > 200) scale = 200; 
+
+        // 4. 渲染像素
+        screenRect.style.width = (w * scale) + 'px';
+        screenRect.style.height = (h * scale) + 'px';
+        
+        // 动态调整字体大小
+        let fontSize = Math.min(w * scale * 0.1, h * scale * 0.3, 16); 
+        screenRect.style.fontSize = Math.max(fontSize, 8) + 'px'; 
+        screenText.innerHTML = `${w}m x ${h}m`;
+
+        if (b > 0) {
+            baseRect.style.display = 'flex';
+            baseRect.style.width = (w * scale) + 'px';
+            baseRect.style.height = (b * scale) + 'px';
+            baseRect.style.fontSize = Math.max((b * scale * 0.4), 8) + 'px';
+            baseText.innerText = `${b}m`;
+        } else {
+            baseRect.style.display = 'none';
+        }
+
+        manImg.style.height = (MAN_REAL_HEIGHT * scale) + 'px';
+
+        // 5. 动态设置白底框的高度！
+        let currentPxHeight = totalHeightMeter * scale;
+        canvasBox.style.height = (currentPxHeight + 40) + 'px';
+        renderArea.style.height = currentPxHeight + 'px';
+    }
+
+    // 监听用户上传图片文件
+    inpUpload.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // 使用 FileReader 读取本地文件
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            // 获取 Base64 格式的图片数据并设为 img 标签的 src
+            uploadedImg.src = event.target.result;
+            // 显示图片图层
+            uploadedImg.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // 监听输入框变化
+    inpW.addEventListener('input', updateView);
+    inpH.addEventListener('input', updateView);
+    inpB.addEventListener('input', updateView);
+
+    // 初始化
+    window.onload = updateView;
+    window.onresize = updateView;
+
+</script>
+</body>
+</html>
