@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>屏幕比例与高度计算</title>
+    <title>启动按手印LED模拟</title>
+
     <style>
         /* 基础重置与排版 */
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,8 +29,11 @@
 
         .header-title {
             font-size: 26px;
-            font-weight: normal;
+            font-weight: 600;
+            text-align: center;
             margin-bottom: 20px;
+            color: #111;
+            width: 100%;
         }
 
         /* ---------------- 输入框与控制区域 ---------------- */
@@ -198,8 +203,8 @@
             width: 250px;
             height: 50px;
             font-size: 20px;
-            color: rgb(142, 142, 142);
-            background-color: transparent;
+            color: rgb(150, 150, 150);
+            background-color: #fff;
             border: 1px solid rgb(243, 243, 243);
             border-radius: 15px; 
             box-shadow: 1px 1px 5px rgb(191, 191, 191); 
@@ -208,14 +213,20 @@
             align-items: center;
             text-decoration: none;
         }
-        .back-btn:active { box-shadow: none; opacity: 0.6; }
+
+        .back-btn:active { 
+            background-color: #f0f0f0; 
+            transform: translateY(2px);
+        }
 
     </style>
+
 </head>
+
 <body>
 
 <div class="container">
-    <h1 class="header-title">屏幕比例可视化</h1>
+    <h1 class="header-title">启动按手印LED模拟</h1>
 
     <div class="controls-group">
         <div class="input-row">
@@ -352,5 +363,7 @@
     window.onresize = updateView;
 
 </script>
+
 </body>
+
 </html>
