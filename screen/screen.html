@@ -1,0 +1,222 @@
+<div id="ratio-calculator">
+  <h2 style="text-align: center; color: #333; margin-top: 0;">智能比例计算器</h2>
+
+  <!-- 预设比例按钮 -->
+  <div class="section">
+    <div class="buttons" id="ratioButtons">
+      <button data-ratio="16:9">16:9</button>
+      <button data-ratio="4:3">4:3</button>
+      <button data-ratio="9:16">9:16</button>
+      <button data-ratio="3:4">3:4</button>
+      <button data-ratio="1:1">1:1</button>
+      <button data-ratio="21:9">21:9</button>
+    </div>
+
+    <!-- 自定义比例 -->
+    <div class="custom-ratio">
+      <span>自定义比例：</span>
+      <input type="number" id="customW" min="1" value="1" placeholder="宽">
+      <span>:</span>
+      <input type="number" id="customH" min="1" value="1" placeholder="高">
+      <button onclick="applyCustomRatio()">应用</button>
+    </div>
+  </div>
+
+  <!-- 输入区域 -->
+  <div class="section">
+    <div class="inputs">
+      <div class="input-group">
+        <label for="length">长度：</label>
+        <input type="number" id="length" min="0" placeholder="输入长度">
+      </div>
+      <div class="input-group">
+        <label for="height">高度：</label>
+        <input type="number" id="height" min="0" placeholder="输入高度">
+      </div>
+    </div>
+  </div>
+
+  <style scoped>
+    #ratio-calculator {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      padding: 16px;
+      max-width: 650px;
+      margin: 0 auto;
+    }
+    .section {
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .buttons button {
+      padding: 8px 14px;
+      font-size: 15px;
+      cursor: pointer;
+      background-color: #e9ecef;
+      border: 1px solid #ced4da;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    .buttons button:hover {
+      background-color: #dee2e6;
+    }
+    .buttons button.active {
+      background-color: #0d6efd;
+      color: white;
+      border-color: #0d6efd;
+    }
+    .custom-ratio {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 10px;
+    }
+    .custom-ratio input {
+      width: 60px;
+      padding: 6px;
+      font-size: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .custom-ratio span {
+      font-size: 18px;
+      color: #555;
+    }
+    .inputs {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .inputs input {
+      padding: 8px;
+      font-size: 16px;
+      width: 110px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    label {
+      font-size: 16px;
+      white-space: nowrap;
+    }
+  </style>
+
+  <script>
+    // 注意：iVX 中 window 全局可能受限，建议用立即执行函数避免污染
+    (function() {
+      const container = document.getElementById('ratio-calculator');
+      if (!container) return;
+
+      const savedRatio = localStorage.getItem('lastRatio') || '16:9';
+      let currentRatio = parseRatio(savedRatio);
+      let isUpdating = false;
+
+      const lengthInput = container.querySelector('#length');
+      const heightInput = container.querySelector('#height');
+      const buttons = container.querySelectorAll('#ratioButtons button');
+
+      function parseRatio(str) {
+        const [w, h] = str.split(':').map(Number);
+        return { w, h };
+      }
+
+      function saveRatio(ratioStr) {
+        localStorage.setItem('lastRatio', ratioStr);
+      }
+
+      function setActiveButton(activeBtn) {
+        buttons.forEach(b => b.classList.remove('active'));
+        activeBtn.classList.add('active');
+      }
+
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const ratioStr = btn.dataset.ratio;
+          currentRatio = parseRatio(ratioStr);
+          saveRatio(ratioStr);
+          setActiveButton(btn);
+          recalculate();
+        });
+      });
+
+      const savedBtn = Array.from(buttons).find(btn => btn.dataset.ratio === savedRatio);
+      if (savedBtn) {
+        savedBtn.classList.add('active');
+      }
+
+      window.applyCustomRatio = function() {
+        const w = parseInt(container.querySelector('#customW').value) || 1;
+        const h = parseInt(container.querySelector('#customH').value) || 1;
+        const ratioStr = `${w}:${h}`;
+        currentRatio = { w, h };
+        saveRatio(ratioStr);
+        buttons.forEach(b => b.classList.remove('active'));
+        recalculate();
+      };
+
+      function makeEven(num) {
+        if (isNaN(num)) return num;
+        const n = Math.round(num);
+        return n % 2 === 0 ? n : n + 1;
+      }
+
+      function updateHeightFromLength() {
+        const len = parseInt(lengthInput.value);
+        if (!isNaN(len) && len >= 0) {
+          const rawHeight = (len * currentRatio.h) / currentRatio.w;
+          const height = makeEven(rawHeight);
+          heightInput.value = height;
+        } else {
+          heightInput.value = '';
+        }
+      }
+
+      function updateLengthFromHeight() {
+        const hei = parseInt(heightInput.value);
+        if (!isNaN(hei) && hei >= 0) {
+          const rawLength = (hei * currentRatio.w) / currentRatio.h;
+          const length = makeEven(rawLength);
+          lengthInput.value = length;
+        } else {
+          lengthInput.value = '';
+        }
+      }
+
+      lengthInput.addEventListener('input', () => {
+        if (!isUpdating) {
+          isUpdating = true;
+          updateHeightFromLength();
+          isUpdating = false;
+        }
+      });
+
+      heightInput.addEventListener('input', () => {
+        if (!isUpdating) {
+          isUpdating = true;
+          updateLengthFromHeight();
+          isUpdating = false;
+        }
+      });
+
+      function recalculate() {
+        if (lengthInput.value) {
+          updateHeightFromLength();
+        } else if (heightInput.value) {
+          updateLengthFromHeight();
+        }
+      }
+    })();
+  </script>
+</div>

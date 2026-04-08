@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>专业级手办涂装配色模拟器 v3.2 (色轮拾取版)</title>
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --bg: #F3F4F6;
+            --card-bg: #FFFFFF;
+            --text-main: #1F2937;
+            --text-light: #6B7280;
+            --border: #E5E7EB;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 2.5rem;
+            align-items: flex-start; /* 改为顶部对齐，适应拉长的面板 */
+            position: relative;
+        }
+
+        .header-title {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: #6B7280;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .color-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+            width: 220px;
+            align-items: center;
+        }
+
+        .preview-box {
+            width: 100%;
+            height: 120px;
+            border-radius: 12px;
+            border: 2px solid var(--border);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
+            transition: background-color 0.3s ease;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 10px;
+        }
+
+        .color-name-badge {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(4px);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #333;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            letter-spacing: 1px;
+            text-align: center;
+            max-width: 90%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* 新增：色轮样式 */
+        .color-wheel {
+            border-radius: 50%;
+            cursor: crosshair;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            margin-bottom: 10px;
+            transition: transform 0.2s;
+        }
+        .color-wheel:active {
+            transform: scale(0.95);
+        }
+
+        .result-preview {
+            height: 160px;
+            border: 3px solid var(--border);
+        }
+
+        .input-group {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .input-group label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-light);
+            text-transform: uppercase;
+        }
+
+        .hex-input, .multi-inputs input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: monospace;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .multi-inputs {
+            display: flex;
+            gap: 6px;
+        }
+
+        .math-symbol {
+            font-size: 2.5rem;
+            font-weight: 300;
+            color: #9CA3AF;
+            margin-top: 150px; /* 调整加号和等号的垂直位置 */
+        }
+
+        .result-data {
+            width: 100%;
+            background: #F9FAFB;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: var(--text-light);
+            line-height: 1.6;
+            box-sizing: border-box;
+        }
+        
+        .result-data span {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-title">算法：物理颜料减色混合模型 (正片叠底)</div>
+
+    <div class="color-panel" id="panelA">
+        <h3 style="margin:0; color: var(--text-light);">颜料 A</h3>
+        <div class="preview-box" id="previewA">
+            <div class="color-name-badge" id="nameA" title="识别中...">识别中...</div>
+        </div>
+        
+        <canvas width="160" height="160" class="color-wheel" data-panel="A"></canvas>
+
+        <div class="input-group">
+            <label>Hex</label>
+            <input type="text" class="hex-input hex" value="FFFF00" maxlength="6" data-panel="A">
+        </div>
+        <div class="input-group">
+            <label>RGB (0-255)</label>
+            <div class="multi-inputs">
+                <input type="number" class="rgb-r" value="255" min="0" max="255" data-panel="A">
+                <input type="number" class="rgb-g" value="255" min="0" max="255" data-panel="A">
+                <input type="number" class="rgb-b" value="0" min="0" max="255" data-panel="A">
+            </div>
+        </div>
+        <div class="input-group">
+            <label>CMYK (0-100%)</label>
+            <div class="multi-inputs">
+                <input type="number" class="cmyk-c" value="0" min="0" max="100" data-panel="A">
+                <input type="number" class="cmyk-m" value="0" min="0" max="100" data-panel="A">
+                <input type="number" class="cmyk-y" value="100" min="0" max="100" data-panel="A">
+                <input type="number" class="cmyk-k" value="0" min="0" max="100" data-panel="A">
+            </div>
+        </div>
+    </div>
+
+    <div class="math-symbol">+</div>
+
+    <div class="color-panel" id="panelB">
+        <h3 style="margin:0; color: var(--text-light);">颜料 B</h3>
+        <div class="preview-box" id="previewB">
+            <div class="color-name-badge" id="nameB" title="识别中...">识别中...</div>
+        </div>
+
+        <canvas width="160" height="160" class="color-wheel" data-panel="B"></canvas>
+        
+        <div class="input-group">
+            <label>Hex</label>
+            <input type="text" class="hex-input hex" value="00FFFF" maxlength="6" data-panel="B">
+        </div>
+        <div class="input-group">
+            <label>RGB (0-255)</label>
+            <div class="multi-inputs">
+                <input type="number" class="rgb-r" value="0" min="0" max="255" data-panel="B">
+                <input type="number" class="rgb-g" value="255" min="0" max="255" data-panel="B">
+                <input type="number" class="rgb-b" value="255" min="0" max="255" data-panel="B">
+            </div>
+        </div>
+        <div class="input-group">
+            <label>CMYK (0-100%)</label>
+            <div class="multi-inputs">
+                <input type="number" class="cmyk-c" value="100" min="0" max="100" data-panel="B">
+                <input type="number" class="cmyk-m" value="0" min="0" max="100" data-panel="B">
+                <input type="number" class="cmyk-y" value="0" min="0" max="100" data-panel="B">
+                <input type="number" class="cmyk-k" value="0" min="0" max="100" data-panel="B">
+            </div>
+        </div>
+    </div>
+
+    <div class="math-symbol">=</div>
+
+    <div class="color-panel">
+        <h3 style="margin:0; color: var(--primary);">混合结果</h3>
+        <div class="preview-box result-preview" id="previewResult">
+            <div class="color-name-badge" id="nameResult" title="识别中...">识别中...</div>
+        </div>
+        <div style="height: 160px; margin-bottom: 10px; display:flex; align-items:center; justify-content:center;">
+             <span style="font-size: 0.8rem; color: #9CA3AF;">结果实时预览区</span>
+        </div>
+        
+        <div class="result-data">
+            <div>HEX: <span id="resHex">#---</span></div>
+            <div>RGB: <span id="resRgb">---, ---, ---</span></div>
+            <div>CMYK: <span id="resCmyk">---, ---, ---, ---</span></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 词典保持之前扩充的80+颜色版本
+    const colorDictionary = [
+        {name: "纯黑", r: 0, g: 0, b: 0}, {name: "纯白", r: 255, g: 255, b: 255},
+        {name: "深灰", r: 105, g: 105, b: 105}, {name: "中灰", r: 128, g: 128, b: 128}, 
+        {name: "浅灰", r: 211, g: 211, b: 211}, {name: "银灰", r: 192, g: 192, b: 192}, {name: "碳灰", r: 54, g: 69, b: 79},
+        {name: "正红", r: 255, g: 0, b: 0}, {name: "朱红", r: 255, g: 69, b: 0}, 
+        {name: "暗红/勃艮第红", r: 128, g: 0, b: 32}, {name: "酒红", r: 114, g: 47, b: 55}, {name: "砖红", r: 178, g: 34, b: 34},
+        {name: "洋红/品红", r: 255, g: 0, b: 255}, {name: "玫红", r: 228, g: 0, b: 127}, 
+        {name: "粉红", r: 255, g: 192, b: 203}, {name: "樱花粉", r: 255, g: 183, b: 197}, 
+        {name: "珊瑚红", r: 255, g: 127, b: 80}, {name: "三文鱼粉", r: 250, g: 128, b: 114}, {name: "荧光粉", r: 255, g: 20, b: 147},
+        {name: "正黄", r: 255, g: 255, b: 0}, {name: "橙色/橘黄", r: 255, g: 165, b: 0}, 
+        {name: "深橙", r: 255, g: 140, b: 0}, {name: "柠檬黄", r: 255, g: 250, b: 205}, 
+        {name: "金黄", r: 255, g: 215, b: 0}, {name: "芥末黄", r: 255, g: 219, b: 88}, 
+        {name: "拿坡里黄", r: 250, g: 218, b: 94}, {name: "土黄", r: 205, g: 133, b: 63},
+        {name: "纯绿", r: 0, g: 128, b: 0}, {name: "翠绿", r: 0, g: 255, b: 127}, 
+        {name: "草绿", r: 124, g: 252, b: 0}, {name: "黄绿/嫩绿", r: 154, g: 205, b: 50},
+        {name: "墨绿", r: 0, g: 100, b: 0}, {name: "橄榄绿", r: 128, g: 128, b: 0}, 
+        {name: "薄荷绿", r: 152, g: 255, b: 152}, {name: "孔雀绿", r: 0, g: 168, b: 107}, 
+        {name: "军绿", r: 75, g: 83, b: 32}, {name: "荧光绿", r: 57, g: 255, b: 20},
+        {name: "纯蓝", r: 0, g: 0, b: 255}, {name: "青色/湖蓝", r: 0, g: 255, b: 255}, 
+        {name: "天蓝", r: 135, g: 206, b: 235}, {name: "钴蓝", r: 0, g: 71, b: 171},
+        {name: "藏青", r: 0, g: 0, b: 128}, {name: "宝蓝", r: 65, g: 105, b: 225}, 
+        {name: "浅蓝", r: 173, g: 216, b: 230}, {name: "深海蓝", r: 0, g: 43, b: 54},
+        {name: "普鲁士蓝", r: 0, g: 49, b: 83}, {name: "水军蓝", r: 0, g: 119, b: 190},
+        {name: "青花蓝", r: 29, g: 41, b: 81}, {name: "矢车菊蓝", r: 100, g: 149, b: 237},
+        {name: "纯紫", r: 128, g: 0, b: 128}, {name: "紫罗兰", r: 138, g: 43, b: 226}, 
+        {name: "丁香紫", r: 200, g: 162, b: 200}, {name: "蓝紫", r: 114, g: 80, b: 180}, 
+        {name: "电光紫/荧光紫", r: 186, g: 0, b: 255}, {name: "深紫/暗紫", r: 48, g: 25, b: 52},
+        {name: "紫红", r: 199, g: 21, b: 133},
+        {name: "标准肤色/肉色", r: 255, g: 224, b: 189}, {name: "白皙肤色", r: 255, g: 239, b: 213}, 
+        {name: "粉嫩肤色", r: 255, g: 218, b: 185}, {name: "阴影肤色", r: 233, g: 150, b: 122}, 
+        {name: "小麦肤色", r: 210, g: 180, b: 140}, {name: "浅棕色", r: 160, g: 82, b: 45},
+        {name: "棕色/褐色", r: 139, g: 69, b: 19}, {name: "深褐/巧克力", r: 123, g: 63, b: 0},
+        {name: "赭石", r: 204, g: 119, b: 34}, {name: "焦茶色", r: 101, g: 67, b: 33},
+        {name: "德国灰", r: 77, g: 93, b: 83}, {name: "战舰灰", r: 132, g: 132, b: 130}, 
+        {name: "沙漠黄", r: 237, g: 201, b: 175}, {name: "卡其色", r: 195, g: 176, b: 145}, 
+        {name: "雾霾蓝", r: 112, g: 128, b: 144}, {name: "豆沙绿", r: 136, g: 171, b: 138}, 
+        {name: "奶茶色", r: 210, g: 180, b: 140}, {name: "藕荷色", r: 224, g: 176, b: 255},
+        {name: "灰紫", r: 150, g: 120, b: 182}, {name: "枪铁色(近似)", r: 42, g: 52, b: 57},
+        {name: "香槟金(近似)", r: 247, g: 231, b: 206}, {name: "高达白(近似)", r: 244, g: 244, b: 244}
+    ];
+
+    function getNearestColorName(r, g, b) {
+        let minDistance = Infinity;
+        let nearestName = "未知";
+        for (let color of colorDictionary) {
+            let distance = Math.pow(r - color.r, 2) + Math.pow(g - color.g, 2) + Math.pow(b - color.b, 2);
+            if (distance < minDistance) {
+                minDistance = distance;
+                nearestName = color.name;
+            }
+        }
+        return nearestName;
+    }
+
+    function hexToRgb(hex) {
+        let h = hex.replace('#', '');
+        if(h.length === 3) h = [...h].map(x => x + x).join('');
+        return {
+            r: parseInt(h.substring(0, 2), 16),
+            g: parseInt(h.substring(2, 4), 16),
+            b: parseInt(h.substring(4, 6), 16)
+        };
+    }
+
+    function rgbToHex(r, g, b) {
+        return ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+    }
+
+    function rgbToCmyk(r, g, b) {
+        let c = 1 - (r / 255);
+        let m = 1 - (g / 255);
+        let y = 1 - (b / 255);
+        let k = Math.min(c, m, y);
+        if (k === 1) return { c: 0, m: 0, y: 0, k: 100 };
+        c = Math.round(((c - k) / (1 - k)) * 100) || 0;
+        m = Math.round(((m - k) / (1 - k)) * 100) || 0;
+        y = Math.round(((y - k) / (1 - k)) * 100) || 0;
+        k = Math.round(k * 100) || 0;
+        return { c, m, y, k };
+    }
+
+    function cmykToRgb(c, m, y, k) {
+        c = c / 100; m = m / 100; y = y / 100; k = k / 100;
+        let r = Math.round(255 * (1 - c) * (1 - k));
+        let g = Math.round(255 * (1 - m) * (1 - k));
+        let b = Math.round(255 * (1 - y) * (1 - k));
+        return { r, g, b };
+    }
+
+    const state = {
+        A: { r: 255, g: 255, b: 0 },
+        B: { r: 0, g: 255, b: 255 }
+    };
+
+    function updateDOM(panelId, rgbObj) {
+        const panel = document.getElementById(`panel${panelId}`);
+        const cmykObj = rgbToCmyk(rgbObj.r, rgbObj.g, rgbObj.b);
+        const hexStr = rgbToHex(rgbObj.r, rgbObj.g, rgbObj.b);
+
+        document.getElementById(`preview${panelId}`).style.backgroundColor = `#${hexStr}`;
+        const colorName = getNearestColorName(rgbObj.r, rgbObj.g, rgbObj.b);
+        const nameDisplay = colorName + (colorName === "未知" ? "" : " (近似)");
+        
+        const badge = document.getElementById(`name${panelId}`);
+        badge.innerText = nameDisplay;
+        badge.title = nameDisplay;
+        
+        panel.querySelector('.hex').value = hexStr;
+        panel.querySelector('.rgb-r').value = rgbObj.r;
+        panel.querySelector('.rgb-g').value = rgbObj.g;
+        panel.querySelector('.rgb-b').value = rgbObj.b;
+        panel.querySelector('.cmyk-c').value = cmykObj.c;
+        panel.querySelector('.cmyk-m').value = cmykObj.m;
+        panel.querySelector('.cmyk-y').value = cmykObj.y;
+        panel.querySelector('.cmyk-k').value = cmykObj.k;
+    }
+
+    function updateResult() {
+        const mixR = Math.round((state.A.r * state.B.r) / 255);
+        const mixG = Math.round((state.A.g * state.B.g) / 255);
+        const mixB = Math.round((state.A.b * state.B.b) / 255);
+
+        const mixHex = rgbToHex(mixR, mixG, mixB);
+        const mixCmyk = rgbToCmyk(mixR, mixG, mixB);
+
+        document.getElementById('previewResult').style.backgroundColor = `#${mixHex}`;
+        
+        const resName = getNearestColorName(mixR, mixG, mixB);
+        const resDisplay = resName + " (近似)";
+        const resBadge = document.getElementById('nameResult');
+        resBadge.innerText = resDisplay;
+        resBadge.title = resDisplay;
+
+        document.getElementById('resHex').innerText = `#${mixHex}`;
+        document.getElementById('resRgb').innerText = `${mixR}, ${mixG}, ${mixB}`;
+        document.getElementById('resCmyk').innerText = `${mixCmyk.c}%, ${mixCmyk.m}%, ${mixCmyk.y}%, ${mixCmyk.k}%`;
+    }
+
+    function handleInput(e) {
+        const target = e.target;
+        const panelId = target.dataset.panel;
+        const panel = document.getElementById(`panel${panelId}`);
+        
+        try {
+            if (target.classList.contains('hex')) {
+                const hexVal = target.value;
+                if (/^[0-9A-Fa-f]{6}$/.test(hexVal) || /^[0-9A-Fa-f]{3}$/.test(hexVal)) {
+                    state[panelId] = hexToRgb(hexVal);
+                } else return;
+            } 
+            else if (target.className.includes('rgb-')) {
+                const r = parseInt(panel.querySelector('.rgb-r').value) || 0;
+                const g = parseInt(panel.querySelector('.rgb-g').value) || 0;
+                const b = parseInt(panel.querySelector('.rgb-b').value) || 0;
+                if(r>=0&&r<=255 && g>=0&&g<=255 && b>=0&&b<=255) state[panelId] = { r, g, b };
+                else return;
+            }
+            else if (target.className.includes('cmyk-')) {
+                const c = parseInt(panel.querySelector('.cmyk-c').value) || 0;
+                const m = parseInt(panel.querySelector('.cmyk-m').value) || 0;
+                const y = parseInt(panel.querySelector('.cmyk-y').value) || 0;
+                const k = parseInt(panel.querySelector('.cmyk-k').value) || 0;
+                if(c>=0&&c<=100 && m>=0&&m<=100 && y>=0&&y<=100 && k>=0&&k<=100) state[panelId] = cmykToRgb(c, m, y, k);
+                else return;
+            }
+
+            updateDOM(panelId, state[panelId]);
+            updateResult();
+        } catch (err) {}
+    }
+
+    // === 新增：绘制交互式色轮 ===
+    function initColorWheels() {
+        document.querySelectorAll('.color-wheel').forEach(canvas => {
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            const radius = canvas.width / 2;
+            const centerX = radius;
+            const centerY = radius;
+
+            // 1. 绘制 360 度色相环 (Hue)
+            for(let angle = 0; angle <= 360; angle += 1) {
+                const startAngle = (angle - 2) * Math.PI / 180;
+                const endAngle = angle * Math.PI / 180;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.closePath();
+                ctx.fillStyle = `hsl(${angle}, 100%, 50%)`;
+                ctx.fill();
+            }
+
+            // 2. 绘制饱和度渐变 (中心白 - 边缘透明)
+            const grad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+            grad.addColorStop(0, 'rgba(255,255,255,1)');
+            grad.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 3. 绑定点击拾色事件
+            canvas.addEventListener('mousedown', function(e) {
+                // 获取鼠标在画布内的精确坐标
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                // 边界检测：防止点选到圆圈外的透明区域
+                const dx = x - centerX;
+                const dy = y - centerY;
+                if (dx * dx + dy * dy > radius * radius) return;
+
+                // 抓取像素点 RGB 数据
+                const pixel = ctx.getImageData(x, y, 1, 1).data;
+                const panelId = canvas.dataset.panel;
+                
+                // 更新状态并刷新全局UI
+                state[panelId] = { r: pixel[0], g: pixel[1], b: pixel[2] };
+                updateDOM(panelId, state[panelId]);
+                updateResult();
+            });
+            
+            // 支持按住鼠标拖动选色
+            canvas.addEventListener('mousemove', function(e) {
+                if(e.buttons !== 1) return; // 只有按住左键时才触发
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const dx = x - centerX;
+                const dy = y - centerY;
+                if (dx * dx + dy * dy > radius * radius) return;
+
+                const pixel = ctx.getImageData(x, y, 1, 1).data;
+                const panelId = canvas.dataset.panel;
+                state[panelId] = { r: pixel[0], g: pixel[1], b: pixel[2] };
+                updateDOM(panelId, state[panelId]);
+                updateResult();
+            });
+        });
+    }
+
+    document.querySelectorAll('input').forEach(input => {
+        input.addEventListener('input', handleInput);
+    });
+
+    // 初始化运行
+    initColorWheels();
+    updateDOM('A', state.A);
+    updateDOM('B', state.B);
+    updateResult();
+</script>
+</body>
+</html>

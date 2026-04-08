@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>财务大写金额转换器（全简体标准版）</title>
+    <style>
+        :root {
+            --primary: #1a365d;
+            --accent: #2b6cb0;
+            --light: #f8fafc;
+            --border: #cbd5e0;
+            --success: #2f855a;
+        }
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", "SimSun", sans-serif;
+            background: #EDEDED; /* 指定背景色 */
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            color: var(--primary);
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            padding: 2rem;
+            width: 100%;
+            max-width: 520px;
+        }
+        h1 {
+            text-align: center;
+            margin-top: 0;
+            font-size: 1.4rem;
+            color: var(--primary);
+            font-weight: 600;
+        }
+        label {
+            display: block;
+            margin: 1.2rem 0 0.5rem;
+            font-weight: bold;
+            font-size: 0.95rem;
+        }
+        input {
+            width: 100%;
+            padding: 14px;
+            font-size: 1.3rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-family: "Courier New", monospace;
+            letter-spacing: 1px;
+        }
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .result-box {
+            margin-top: 1.5rem;
+            padding: 1.4rem;
+            background: var(--light);
+            border-radius: 10px;
+            border-left: 4px solid var(--success);
+            min-height: 2.2rem;
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--primary);
+            word-break: break-all;
+            line-height: 1.5;
+        }
+        .btn {
+            width: 100%;
+            padding: 13px;
+            background: var(--success);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.05rem;
+            margin-top: 1.2rem;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            font-weight: bold;
+        }
+        .btn:hover {
+            background: #276749;
+        }
+        .btn:active {
+            transform: scale(0.99);
+        }
+        .hint {
+            font-size: 0.85rem;
+            color: #718096;
+            margin-top: 1.2rem;
+            line-height: 1.5;
+        }
+        .error {
+            color: #e53e3e;
+            font-size: 0.9rem;
+            margin-top: 0.4rem;
+            min-height: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>财务大写金额转换器（全简体标准版）</h1>
+
+    <label for="amount">请输入阿拉伯数字金额：</label>
+    <input type="text" id="amount" placeholder="例如：270000.00" autocomplete="off" autofocus>
+
+    <div id="error" class="error"></div>
+
+    <div class="result-box" id="result">（输入合法金额后自动转换）</div>
+
+    <button class="btn" onclick="copyResult()">一键复制大写金额</button>
+
+    <div class="hint">
+        • 符合《支付结算办法》财务规范<br>
+        • 使用全简体标准大写数字：零、壹、贰、叁、肆、伍、陆、柒、捌、玖<br>
+        • 单位使用简体“万”“亿”<br>
+        • 示例：270000 → 贰拾柒万元整
+    </div>
+</div>
+
+<script>
+    // 全简体标准财务大写数字（中国大陆规范）
+    const DIGITS = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
+    const UNITS = ['', '拾', '佰', '仟'];
+    const BIG_UNITS = ['', '万', '亿'];
+
+    function convertIntegerPart(numStr) {
+        if (numStr === '0') return '零';
+
+        let reversed = numStr.split('').reverse().join('');
+        let groups = [];
+        for (let i = 0; i < reversed.length; i += 4) {
+            groups.push(reversed.substr(i, 4).split('').reverse().join(''));
+        }
+        groups.reverse();
+
+        let result = '';
+        let hasNonZero = false;
+
+        for (let i = 0; i < groups.length; i++) {
+            const group = groups[i];
+            const bigUnitIndex = groups.length - i - 1;
+            const bigUnit = BIG_UNITS[bigUnitIndex] || '';
+
+            let section = '';
+            let hasNonZeroInSection = false;
+            for (let j = 0; j < group.length; j++) {
+                const digit = parseInt(group[j], 10);
+                if (digit !== 0) {
+                    if (section !== '' && section.charAt(section.length - 1) !== '零') {
+                        let needZero = false;
+                        for (let k = j - 1; k >= 0; k--) {
+                            if (parseInt(group[k], 10) === 0) {
+                                needZero = true;
+                            } else {
+                                break;
+                            }
+                        }
+                        if (needZero) {
+                            section += '零';
+                        }
+                    }
+                    section += DIGITS[digit] + UNITS[group.length - j - 1];
+                    hasNonZeroInSection = true;
+                }
+            }
+
+            if (hasNonZeroInSection) {
+                if (hasNonZero) {
+                    let needZero = false;
+                    for (let k = i - 1; k >= 0; k--) {
+                        if (parseInt(groups[k].replace(/^0+/, '') || '0') === 0) {
+                            needZero = true;
+                        } else {
+                            break;
+                        }
+                    }
+                    if (needZero && result.charAt(result.length - 1) !== '零') {
+                        result += '零';
+                    }
+                }
+                result += section + bigUnit;
+                hasNonZero = true;
+            }
+        }
+
+        if (result.startsWith('拾')) {
+            result = '壹' + result;
+        }
+
+        return result || '零';
+    }
+
+    function toChineseAmount(amountStr) {
+        amountStr = amountStr.trim();
+        if (!/^\d+(\.\d{1,2})?$/.test(amountStr)) {
+            throw new Error('请输入有效的非负金额（最多两位小数）');
+        }
+
+        let [intPart, decPart = ''] = amountStr.split('.');
+        intPart = intPart.replace(/^0+/, '') || '0';
+        decPart = decPart.padEnd(2, '0').slice(0, 2);
+
+        if (intPart === '0' && decPart === '00') {
+            return '零元整';
+        }
+
+        let result = convertIntegerPart(intPart) + '元';
+
+        const jiao = parseInt(decPart[0], 10);
+        const fen = parseInt(decPart[1], 10);
+
+        if (jiao > 0) result += DIGITS[jiao] + '角';
+        if (fen > 0) result += DIGITS[fen] + '分';
+
+        if (jiao === 0 && fen === 0) {
+            result += '整';
+        }
+
+        return result;
+    }
+
+    const inputEl = document.getElementById('amount');
+    const resultEl = document.getElementById('result');
+    const errorEl = document.getElementById('error');
+
+    inputEl.addEventListener('input', () => {
+        const val = inputEl.value;
+        errorEl.textContent = '';
+        if (val.trim() === '') {
+            resultEl.textContent = '（输入合法金额后自动转换）';
+            return;
+        }
+        try {
+            const chinese = toChineseAmount(val);
+            resultEl.textContent = chinese;
+        } catch (e) {
+            resultEl.textContent = '（输入合法金额后自动转换）';
+            errorEl.textContent = e.message;
+        }
+    });
+
+    function copyResult() {
+        const text = resultEl.textContent;
+        if (text.includes('（输入')) {
+            alert('请先输入有效金额');
+            return;
+        }
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ 已复制：\n' + text);
+            }).catch(() => fallbackCopy(text));
+        } else {
+            fallbackCopy(text);
+        }
+    }
+
+    function fallbackCopy(text) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        alert('✅ 已复制：\n' + text);
+    }
+</script>
+
+</body>
+</html>
