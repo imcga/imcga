@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>纯原生HTML5数字二维码生成器</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f4f6f8;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            text-align: center;
+            width: 90%;
+            max-width: 320px;
+        }
+        h2 { margin-top: 0; color: #333; }
+        input {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.2rem;
+            text-align: center;
+            border: 2px solid #e1e4e8;
+            border-radius: 8px;
+            box-sizing: border-box;
+            outline: none;
+            transition: 0.3s;
+            font-family: monospace;
+            letter-spacing: 2px;
+        }
+        input:focus { border-color: #2563eb; }
+        canvas {
+            margin-top: 20px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            background: white;
+            max-width: 100%;
+            height: auto;
+        }
+        .status {
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: #666;
+            min-height: 1.2em;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>纯原生二维码生成</h2>
+    <p style="font-size:0.8rem; color:#888;">无外部库 | 仅支持纯数字</p>
+    
+    <input type="text" id="numInput" placeholder="输入 0-9 数字" maxlength="255" inputmode="numeric">
+    
+    <canvas id="qrCanvas" width="200" height="200"></canvas>
+    <div class="status" id="statusMsg">请输入数字进行生成</div>
+</div>
+
+<script>
+/**
+ * 纯原生 JavaScript 二维码生成器 (核心修复版)
+ * 仅支持 Numeric 模式，Version 1-5，EC Level L (7%)
+ * 最大支持容量: 255 位纯数字
+ */
+
+const QRCodeNative = (function() {
+    // 伽罗瓦域运算表 GF(2^8)
+    const GEXP = new Array(512);
+    const GLOG = new Array(256);
+    (function initGF() {
+        let x = 1;
+        for (let i = 0; i < 255; i++) {
+            GEXP[i] = x;
+            GLOG[x] = i;
+            x <<= 1;
+            if (x & 0x100) x ^= 0x11D; 
+        }
+        for (let i = 255; i < 512; i++) GEXP[i] = GEXP[i - 255];
+    })();
+
+    function getBestVersion(length) {
+        const NUM_CAPACITY = [0, 41, 77, 127, 187, 255];
+        for (let v = 1; v <= 5; v++) {
+            if (length <= NUM_CAPACITY[v]) return v;
+        }
+        return -1;
+    }
+
+    function pushBits(arr, val, len) {
+        for (let i = len - 1; i >= 0; i--) arr.push((val >>> i) & 1);
+    }
+
+    function encodeData(text, version) {
+        const bits = [];
+        pushBits(bits, 1, 4); // 数字模式
+        pushBits(bits, text.length, 10); // 字符长度指示符
+
+        for (let i = 0; i < text.length; i += 3) {
+            const remaining = text.length - i;
+            if (remaining >= 3) pushBits(bits, parseInt(text.substr(i, 3), 10), 10);
+            else if (remaining === 2) pushBits(bits, parseInt(text.substr(i, 2), 10), 7);
+            else pushBits(bits, parseInt(text.substr(i, 1), 10), 4);
+        }
+
+        const sizes = [0, 19, 34, 55, 80, 108]; 
+        const totalDataBits = sizes[version] * 8;
+        const remainingBits = totalDataBits - bits.length;
+        
+        if (remainingBits > 0) pushBits(bits, 0, Math.min(4, remainingBits));
+        while (bits.length % 8 !== 0) bits.push(0);
+
+        const padLen = sizes[version] - bits.length / 8;
+        for (let i = 0; i < padLen; i++) {
+            pushBits(bits, (i % 2 === 0) ? 0xEC : 0x11, 8);
+        }
+        return bits;
+    }
+
+    function getGeneratorPoly(degree) {
+        let poly = [1];
+        for (let i = 0; i < degree; i++) {
+            const nextPoly = new Array(poly.length + 1).fill(0);
+            for (let j = 0; j < poly.length; j++) {
+                nextPoly[j] ^= poly[j];
+                if (poly[j] !== 0) {
+                    const logVal = (GLOG[poly[j]] + i) % 255;
+                    nextPoly[j + 1] ^= GEXP[logVal];
+                }
+            }
+            poly = nextPoly;
+        }
+        return poly;
+    }
+
+    function calculateEC(dataBits, version) {
+        // 修复：V5 的总容量应为 134
+        const totalBytesArr = [0, 26, 44, 70, 100, 134]; 
+        const dataCount = [0, 19, 34, 55, 80, 108][version];
+        const ecCount = totalBytesArr[version] - dataCount;
+
+        const dataBytes = [];
+        for (let i = 0; i < dataBits.length; i += 8) {
+            let b = 0;
+            for (let j = 0; j < 8; j++) b = (b << 1) | (dataBits[i + j] || 0);
+            dataBytes.push(b);
+        }
+
+        const ecBytes = new Array(ecCount).fill(0);
+        const generator = getGeneratorPoly(ecCount);
+
+        for (let i = 0; i < dataCount; i++) {
+            const factor = dataBytes[i] ^ ecBytes[0];
+            ecBytes.shift();
+            ecBytes.push(0);
+            if (factor !== 0) {
+                for (let j = 0; j < ecCount; j++) {
+                    ecBytes[j] ^= GEXP[(GLOG[generator[j + 1]] + GLOG[factor]) % 255];
+                }
+            }
+        }
+        return { dataBytes, ecBytes };
+    }
+
+    function createMatrix(version, dataBytes, ecBytes) {
+        const size = version * 4 + 17;
+        const matrix = Array(size).fill(null).map(() => Array(size).fill(null));
+        const reserved = Array(size).fill(null).map(() => Array(size).fill(false));
+
+        // 1. 定位图案
+        const placeFinder = (r, c) => {
+            for (let i = 0; i < 7; i++) {
+                for (let j = 0; j < 7; j++) {
+                    matrix[r + i][c + j] = (i===0||i===6||j===0||j===6||(i>=2&&i<=4&&j>=2&&j<=4)) ? 1 : 0;
+                    reserved[r + i][c + j] = true;
+                }
+            }
+        };
+        
+        // 【新增修复】 2. 定位图案的白色保护区 (Separator)
+        const placeSeparators = () => {
+            for (let i = 0; i < 8; i++) {
+                // 左上
+                matrix[7][i] = 0; reserved[7][i] = true;
+                matrix[i][7] = 0; reserved[i][7] = true;
+                // 右上
+                matrix[7][size - 1 - i] = 0; reserved[7][size - 1 - i] = true;
+                matrix[i][size - 8] = 0; reserved[i][size - 8] = true;
+                // 左下
+                matrix[size - 8][i] = 0; reserved[size - 8][i] = true;
+                matrix[size - 1 - i][7] = 0; reserved[size - 1 - i][7] = true;
+            }
+        };
+
+        placeFinder(0, 0);
+        placeFinder(size - 7, 0);
+        placeFinder(0, size - 7);
+        placeSeparators();
+
+        // 3. 校正图案
+        if (version >= 2) {
+            const centers = [[], [], [6, 18], [6, 22], [6, 26], [6, 30]][version];
+            for (let r of centers) {
+                for (let c of centers) {
+                    if (!reserved[r][c]) {
+                        for (let i = 0; i < 5; i++) {
+                            for (let j = 0; j < 5; j++) {
+                                matrix[r - 2 + i][c - 2 + j] = (i===0||i===4||j===0||j===4||(i===2&&j===2)) ? 1 : 0;
+                                reserved[r - 2 + i][c - 2 + j] = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. 定时图案
+        for (let i = 8; i < size - 8; i++) {
+            if (matrix[6][i] === null) { matrix[6][i] = i % 2 === 0 ? 1 : 0; reserved[6][i] = true; }
+            if (matrix[i][6] === null) { matrix[i][6] = i % 2 === 0 ? 1 : 0; reserved[i][6] = true; }
+        }
+
+        // 5. 暗模块
+        const darkRow = 4 * version + 9;
+        matrix[darkRow][8] = 1;
+        reserved[darkRow][8] = true;
+
+        // 6. 预留格式信息空间
+        const coords1 = [[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[8,7],[8,8],[7,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8]];
+        const coords2 = [[size-1,8],[size-2,8],[size-3,8],[size-4,8],[size-5,8],[size-6,8],[size-7,8],[8,size-8],[8,size-7],[8,size-6],[8,size-5],[8,size-4],[8,size-3],[8,size-2],[8,size-1]];
+        for (let pos of [...coords1, ...coords2]) reserved[pos[0]][pos[1]] = true;
+
+        // 7. 填入数据 (Zig-Zag)
+        const allBytes = [...dataBytes, ...ecBytes];
+        let byteIdx = 0, bitIdx = 0, dirUp = true, col = size - 1;
+
+        while (col > 0) {
+            if (col === 6) col--; 
+            for (let i = 0; i < size; i++) {
+                const r = dirUp ? size - 1 - i : i;
+                for (let c = 0; c < 2; c++) {
+                    const currentCol = col - c;
+                    if (!reserved[r][currentCol]) {
+                        let bit = 0;
+                        if (byteIdx < allBytes.length) {
+                            bit = (allBytes[byteIdx] >>> (7 - bitIdx)) & 1;
+                            bitIdx++;
+                            if (bitIdx === 8) { bitIdx = 0; byteIdx++; }
+                        }
+                        matrix[r][currentCol] = bit;
+                    }
+                }
+            }
+            dirUp = !dirUp;
+            col -= 2;
+        }
+
+        // 8. 应用全局掩码
+        for (let r = 0; r < size; r++) {
+            for (let c = 0; c < size; c++) {
+                if (matrix[r][c] === null) matrix[r][c] = 0; 
+                if (reserved[r][c]) continue; 
+                if ((r + c) % 2 === 0) matrix[r][c] ^= 1;
+            }
+        }
+
+        // 【修复】9. 写入正确的格式信息位序 (从最高位到最低位)
+        const formatVal = 0x77C4; 
+        for (let i = 0; i < 15; i++) {
+            const bit = (formatVal >> (14 - i)) & 1; // 这里修正了偏移量
+            matrix[coords1[i][0]][coords1[i][1]] = bit;
+            matrix[coords2[i][0]][coords2[i][1]] = bit;
+        }
+
+        return matrix;
+    }
+
+    return {
+        generate: function(text) {
+            if (!/^[0-9]+$/.test(text)) throw new Error("输入受限，仅支持纯数字");
+            const version = getBestVersion(text.length);
+            if (version === -1) throw new Error("输入过长，当前极简版最大支持 255 位数字");
+            
+            const dataBits = encodeData(text, version);
+            const { dataBytes, ecBytes } = calculateEC(dataBits, version);
+            const matrix = createMatrix(version, dataBytes, ecBytes);
+            
+            return { matrix, version };
+        }
+    };
+})();
+
+// UI 渲染
+const canvas = document.getElementById('qrCanvas');
+const ctx = canvas.getContext('2d');
+const input = document.getElementById('numInput');
+const status = document.getElementById('statusMsg');
+
+function render() {
+    const text = input.value.trim();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (!text) {
+        status.style.color = "#666";
+        status.textContent = "请输入数字";
+        return;
+    }
+
+    try {
+        const qr = QRCodeNative.generate(text);
+        const matrix = qr.matrix;
+        const size = matrix.length;
+        
+        const padding = 10;
+        const availableSize = canvas.width - padding * 2;
+        const moduleSize = Math.floor(availableSize / size);
+        const offset = (canvas.width - moduleSize * size) / 2;
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = "#000000";
+        for (let r = 0; r < size; r++) {
+            for (let c = 0; c < size; c++) {
+                if (matrix[r][c] === 1) {
+                    ctx.fillRect(offset + c * moduleSize, offset + r * moduleSize, moduleSize, moduleSize);
+                }
+            }
+        }
+        status.style.color = "#16a34a";
+        status.textContent = `✅ 生成成功 (版本 ${qr.version}, ${text.length} 位数字)`;
+    } catch (e) {
+        status.style.color = "#dc2626";
+        status.textContent = "❌ 错误: " + e.message;
+    }
+}
+
+// 监听输入
+let renderTimer;
+input.addEventListener('input', () => {
+    clearTimeout(renderTimer);
+    renderTimer = setTimeout(render, 300);
+});
+
+// 初始化如果是刷新页面带有数值时自动生成
+if(input.value) render();
+
+</script>
+</body>
+</html>
