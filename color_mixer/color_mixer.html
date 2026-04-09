@@ -2,66 +2,88 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>专业级手办涂装配色模拟器 v3.2 (色轮拾取版)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>物理颜料减色混合模拟器</title>
     <style>
+        /* 基础重置与规范 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         :root {
             --primary: #4F46E5;
-            --bg: #F3F4F6;
+            --bg: #f5f6f8;
             --card-bg: #FFFFFF;
-            --text-main: #1F2937;
+            --text-main: #111111;
             --text-light: #6B7280;
             --border: #E5E7EB;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background-color: var(--bg);
             color: var(--text-main);
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
+            justify-content: flex-start;
             min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
+            padding: 30px 15px;
         }
 
+        /* 外部主标题 */
+        .main-title {
+            font-size: 22px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #111;
+            line-height: 1.4;
+            width: 100%;
+        }
+
+        .main-title span {
+            font-size: 14px;
+            font-weight: 400;
+            color: #666;
+            display: block;
+            margin-top: 4px;
+        }
+
+        /* 主体卡片容器 */
         .container {
             background: var(--card-bg);
-            padding: 2.5rem;
-            border-radius: 20px;
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+            padding: 24px 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
             display: flex;
-            gap: 2.5rem;
-            align-items: flex-start; /* 改为顶部对齐，适应拉长的面板 */
-            position: relative;
-        }
-
-        .header-title {
-            position: absolute;
-            top: -40px;
-            left: 0;
+            gap: 20px;
+            align-items: flex-start;
+            justify-content: center;
             width: 100%;
-            text-align: center;
-            color: #6B7280;
-            font-size: 0.9rem;
-            font-weight: bold;
+            max-width: 900px; /* 适配 PC 端横向排列的最大宽度 */
+            flex-wrap: wrap; /* 允许在小屏幕上折行 */
         }
 
+        /* 颜色面板 */
         .color-panel {
             display: flex;
             flex-direction: column;
-            gap: 1.2rem;
+            gap: 1rem;
             width: 220px;
             align-items: center;
+            flex: 1 1 auto; /* 允许弹性缩放 */
+            max-width: 320px;
         }
 
         .preview-box {
             width: 100%;
             height: 120px;
             border-radius: 12px;
-            border: 2px solid var(--border);
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
+            border: 1px solid var(--border);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.04);
             transition: background-color 0.3s ease;
             position: relative;
             display: flex;
@@ -71,14 +93,14 @@
         }
 
         .color-name-badge {
-            background: rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(4px);
             padding: 4px 12px;
             border-radius: 20px;
             font-size: 0.85rem;
-            font-weight: bold;
+            font-weight: 600;
             color: #333;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             letter-spacing: 1px;
             text-align: center;
             max-width: 90%;
@@ -87,13 +109,17 @@
             white-space: nowrap;
         }
 
-        /* 新增：色轮样式 */
+        /* 色轮样式 */
         .color-wheel {
             border-radius: 50%;
             cursor: crosshair;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-            margin-bottom: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            margin-bottom: 5px;
             transition: transform 0.2s;
+            /* 禁用移动端长按选中文本/图片 */
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
         .color-wheel:active {
             transform: scale(0.95);
@@ -101,31 +127,48 @@
 
         .result-preview {
             height: 160px;
-            border: 3px solid var(--border);
+            border: 2px solid var(--border);
         }
 
+        /* ---------------- 输入框排版 ---------------- */
         .input-group {
             width: 100%;
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 6px;
         }
 
         .input-group label {
-            font-size: 0.75rem;
+            font-size: 13px;
             font-weight: 600;
             color: var(--text-light);
             text-transform: uppercase;
+            margin-left: 2px;
         }
 
+        /* 移动端友好的大输入框 */
         .hex-input, .multi-inputs input {
             width: 100%;
-            padding: 8px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-family: monospace;
+            height: 44px; /* 增加高度适合触摸 */
+            background-color: #f4f5f7;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            font-family: ui-monospace, monospace;
+            font-size: 15px;
             text-align: center;
-            box-sizing: border-box;
+            color: #333;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .multi-inputs input {
+            padding: 0;
+        }
+
+        .hex-input:focus, .multi-inputs input:focus {
+            background-color: #fff;
+            border-color: #007aff;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
         }
 
         .multi-inputs {
@@ -133,119 +176,166 @@
             gap: 6px;
         }
 
+        /* 运算符号 */
         .math-symbol {
             font-size: 2.5rem;
             font-weight: 300;
             color: #9CA3AF;
-            margin-top: 150px; /* 调整加号和等号的垂直位置 */
+            margin-top: 150px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .result-data {
             width: 100%;
             background: #F9FAFB;
-            padding: 12px;
-            border-radius: 8px;
+            padding: 16px;
+            border-radius: 12px;
             border: 1px solid var(--border);
-            font-family: monospace;
-            font-size: 0.85rem;
+            font-family: ui-monospace, monospace;
+            font-size: 14px;
             color: var(--text-light);
-            line-height: 1.6;
-            box-sizing: border-box;
+            line-height: 1.8;
         }
         
         .result-data span {
             color: var(--text-main);
             font-weight: 600;
         }
+
+        /* 返回按钮 */
+        .back-btn {
+            margin-top: 20px;
+            width: 250px;
+            height: 50px;
+            font-size: 20px;
+            color: rgb(150, 150, 150);
+            background-color: #fff;
+            border: 1px solid rgb(243, 243, 243);
+            border-radius: 15px; 
+            box-shadow: 1px 1px 5px rgb(191, 191, 191); 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        .back-btn:active { 
+            background-color: #f0f0f0; 
+            transform: translateY(2px);
+        }
+
+        /* ---------------- 移动端专属适配 ---------------- */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+            .color-panel {
+                width: 100%;
+            }
+            .math-symbol {
+                margin-top: 0;
+                margin: 5px 0;
+                transform: rotate(90deg); /* 手机竖屏时，加号和等号旋转更好看 */
+            }
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="header-title">算法：物理颜料减色混合模型 (正片叠底)</div>
+    <h1 class="main-title">
+        物理颜料减色混合模拟器
+        <span> (正片叠底 / 色轮拾取版)</span>
+    </h1>
 
-    <div class="color-panel" id="panelA">
-        <h3 style="margin:0; color: var(--text-light);">颜料 A</h3>
-        <div class="preview-box" id="previewA">
-            <div class="color-name-badge" id="nameA" title="识别中...">识别中...</div>
-        </div>
-        
-        <canvas width="160" height="160" class="color-wheel" data-panel="A"></canvas>
+    <div class="container">
+        <div class="color-panel" id="panelA">
+            <h3 style="margin:0; color: var(--text-light);">颜料 A</h3>
+            <div class="preview-box" id="previewA">
+                <div class="color-name-badge" id="nameA" title="识别中...">识别中...</div>
+            </div>
+            
+            <canvas width="160" height="160" class="color-wheel" data-panel="A"></canvas>
 
-        <div class="input-group">
-            <label>Hex</label>
-            <input type="text" class="hex-input hex" value="FFFF00" maxlength="6" data-panel="A">
-        </div>
-        <div class="input-group">
-            <label>RGB (0-255)</label>
-            <div class="multi-inputs">
-                <input type="number" class="rgb-r" value="255" min="0" max="255" data-panel="A">
-                <input type="number" class="rgb-g" value="255" min="0" max="255" data-panel="A">
-                <input type="number" class="rgb-b" value="0" min="0" max="255" data-panel="A">
+            <div class="input-group">
+                <label>Hex</label>
+                <input type="text" class="hex-input hex" value="FFFF00" maxlength="6" data-panel="A">
+            </div>
+            <div class="input-group">
+                <label>RGB (0-255)</label>
+                <div class="multi-inputs">
+                    <input type="number" class="rgb-r" value="255" min="0" max="255" data-panel="A">
+                    <input type="number" class="rgb-g" value="255" min="0" max="255" data-panel="A">
+                    <input type="number" class="rgb-b" value="0" min="0" max="255" data-panel="A">
+                </div>
+            </div>
+            <div class="input-group">
+                <label>CMYK (0-100%)</label>
+                <div class="multi-inputs">
+                    <input type="number" class="cmyk-c" value="0" min="0" max="100" data-panel="A">
+                    <input type="number" class="cmyk-m" value="0" min="0" max="100" data-panel="A">
+                    <input type="number" class="cmyk-y" value="100" min="0" max="100" data-panel="A">
+                    <input type="number" class="cmyk-k" value="0" min="0" max="100" data-panel="A">
+                </div>
             </div>
         </div>
-        <div class="input-group">
-            <label>CMYK (0-100%)</label>
-            <div class="multi-inputs">
-                <input type="number" class="cmyk-c" value="0" min="0" max="100" data-panel="A">
-                <input type="number" class="cmyk-m" value="0" min="0" max="100" data-panel="A">
-                <input type="number" class="cmyk-y" value="100" min="0" max="100" data-panel="A">
-                <input type="number" class="cmyk-k" value="0" min="0" max="100" data-panel="A">
+
+        <div class="math-symbol">+</div>
+
+        <div class="color-panel" id="panelB">
+            <h3 style="margin:0; color: var(--text-light);">颜料 B</h3>
+            <div class="preview-box" id="previewB">
+                <div class="color-name-badge" id="nameB" title="识别中...">识别中...</div>
+            </div>
+
+            <canvas width="160" height="160" class="color-wheel" data-panel="B"></canvas>
+            
+            <div class="input-group">
+                <label>Hex</label>
+                <input type="text" class="hex-input hex" value="00FFFF" maxlength="6" data-panel="B">
+            </div>
+            <div class="input-group">
+                <label>RGB (0-255)</label>
+                <div class="multi-inputs">
+                    <input type="number" class="rgb-r" value="0" min="0" max="255" data-panel="B">
+                    <input type="number" class="rgb-g" value="255" min="0" max="255" data-panel="B">
+                    <input type="number" class="rgb-b" value="255" min="0" max="255" data-panel="B">
+                </div>
+            </div>
+            <div class="input-group">
+                <label>CMYK (0-100%)</label>
+                <div class="multi-inputs">
+                    <input type="number" class="cmyk-c" value="100" min="0" max="100" data-panel="B">
+                    <input type="number" class="cmyk-m" value="0" min="0" max="100" data-panel="B">
+                    <input type="number" class="cmyk-y" value="0" min="0" max="100" data-panel="B">
+                    <input type="number" class="cmyk-k" value="0" min="0" max="100" data-panel="B">
+                </div>
+            </div>
+        </div>
+
+        <div class="math-symbol">=</div>
+
+        <div class="color-panel">
+            <h3 style="margin:0; color: var(--primary);">混合结果</h3>
+            <div class="preview-box result-preview" id="previewResult">
+                <div class="color-name-badge" id="nameResult" title="识别中...">识别中...</div>
+            </div>
+            <div style="height: 160px; margin-bottom: 5px; display:flex; align-items:center; justify-content:center;">
+                 <span style="font-size: 0.85rem; color: #9CA3AF;">结果实时预览区</span>
+            </div>
+            
+            <div class="result-data">
+                <div>HEX: <span id="resHex">#---</span></div>
+                <div>RGB: <span id="resRgb">---, ---, ---</span></div>
+                <div>CMYK: <span id="resCmyk">---, ---, ---, ---</span></div>
             </div>
         </div>
     </div>
 
-    <div class="math-symbol">+</div>
-
-    <div class="color-panel" id="panelB">
-        <h3 style="margin:0; color: var(--text-light);">颜料 B</h3>
-        <div class="preview-box" id="previewB">
-            <div class="color-name-badge" id="nameB" title="识别中...">识别中...</div>
-        </div>
-
-        <canvas width="160" height="160" class="color-wheel" data-panel="B"></canvas>
-        
-        <div class="input-group">
-            <label>Hex</label>
-            <input type="text" class="hex-input hex" value="00FFFF" maxlength="6" data-panel="B">
-        </div>
-        <div class="input-group">
-            <label>RGB (0-255)</label>
-            <div class="multi-inputs">
-                <input type="number" class="rgb-r" value="0" min="0" max="255" data-panel="B">
-                <input type="number" class="rgb-g" value="255" min="0" max="255" data-panel="B">
-                <input type="number" class="rgb-b" value="255" min="0" max="255" data-panel="B">
-            </div>
-        </div>
-        <div class="input-group">
-            <label>CMYK (0-100%)</label>
-            <div class="multi-inputs">
-                <input type="number" class="cmyk-c" value="100" min="0" max="100" data-panel="B">
-                <input type="number" class="cmyk-m" value="0" min="0" max="100" data-panel="B">
-                <input type="number" class="cmyk-y" value="0" min="0" max="100" data-panel="B">
-                <input type="number" class="cmyk-k" value="0" min="0" max="100" data-panel="B">
-            </div>
-        </div>
-    </div>
-
-    <div class="math-symbol">=</div>
-
-    <div class="color-panel">
-        <h3 style="margin:0; color: var(--primary);">混合结果</h3>
-        <div class="preview-box result-preview" id="previewResult">
-            <div class="color-name-badge" id="nameResult" title="识别中...">识别中...</div>
-        </div>
-        <div style="height: 160px; margin-bottom: 10px; display:flex; align-items:center; justify-content:center;">
-             <span style="font-size: 0.8rem; color: #9CA3AF;">结果实时预览区</span>
-        </div>
-        
-        <div class="result-data">
-            <div>HEX: <span id="resHex">#---</span></div>
-            <div>RGB: <span id="resRgb">---, ---, ---</span></div>
-            <div>CMYK: <span id="resCmyk">---, ---, ---, ---</span></div>
-        </div>
-    </div>
-</div>
+    <a href="../index.html" class="back-btn">返回主页</a>
 
 <script>
     // 词典保持之前扩充的80+颜色版本
@@ -420,7 +510,7 @@
         } catch (err) {}
     }
 
-    // === 新增：绘制交互式色轮 ===
+    // 绘制交互式色轮
     function initColorWheels() {
         document.querySelectorAll('.color-wheel').forEach(canvas => {
             const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -428,7 +518,6 @@
             const centerX = radius;
             const centerY = radius;
 
-            // 1. 绘制 360 度色相环 (Hue)
             for(let angle = 0; angle <= 360; angle += 1) {
                 const startAngle = (angle - 2) * Math.PI / 180;
                 const endAngle = angle * Math.PI / 180;
@@ -440,7 +529,6 @@
                 ctx.fill();
             }
 
-            // 2. 绘制饱和度渐变 (中心白 - 边缘透明)
             const grad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
             grad.addColorStop(0, 'rgba(255,255,255,1)');
             grad.addColorStop(1, 'rgba(255,255,255,0)');
@@ -449,44 +537,40 @@
             ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
             ctx.fill();
 
-            // 3. 绑定点击拾色事件
-            canvas.addEventListener('mousedown', function(e) {
-                // 获取鼠标在画布内的精确坐标
-                const rect = canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
+            // 支持触摸和鼠标拾色
+            function pickColor(e) {
+                e.preventDefault(); // 防止滚动
+                let clientX, clientY;
                 
-                // 边界检测：防止点选到圆圈外的透明区域
-                const dx = x - centerX;
-                const dy = y - centerY;
-                if (dx * dx + dy * dy > radius * radius) return;
+                if (e.touches) {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                } else {
+                    if (e.type === 'mousemove' && e.buttons !== 1) return;
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
 
-                // 抓取像素点 RGB 数据
-                const pixel = ctx.getImageData(x, y, 1, 1).data;
-                const panelId = canvas.dataset.panel;
-                
-                // 更新状态并刷新全局UI
-                state[panelId] = { r: pixel[0], g: pixel[1], b: pixel[2] };
-                updateDOM(panelId, state[panelId]);
-                updateResult();
-            });
-            
-            // 支持按住鼠标拖动选色
-            canvas.addEventListener('mousemove', function(e) {
-                if(e.buttons !== 1) return; // 只有按住左键时才触发
                 const rect = canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
+                const x = clientX - rect.left;
+                const y = clientY - rect.top;
+                
                 const dx = x - centerX;
                 const dy = y - centerY;
                 if (dx * dx + dy * dy > radius * radius) return;
 
                 const pixel = ctx.getImageData(x, y, 1, 1).data;
                 const panelId = canvas.dataset.panel;
+                
                 state[panelId] = { r: pixel[0], g: pixel[1], b: pixel[2] };
                 updateDOM(panelId, state[panelId]);
                 updateResult();
-            });
+            }
+
+            canvas.addEventListener('mousedown', pickColor);
+            canvas.addEventListener('mousemove', pickColor);
+            canvas.addEventListener('touchstart', pickColor, {passive: false});
+            canvas.addEventListener('touchmove', pickColor, {passive: false});
         });
     }
 

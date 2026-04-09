@@ -2,12 +2,13 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>毒鸡汤 - 每日一扎</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>心灵（乌）鸡汤</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="icon" href="icon.png" type="image/png">
     <style>
+        /* 基础重置与规范 */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -15,105 +16,161 @@
         }
 
         body {
-            background-color: rgb(237, 237, 237); 
+            background-color: #f5f6f8; /* 浅灰背景色 */
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #333;
             display: flex;
-            justify-content: center;
-            min-height: 100vh; 
-            color: rgb(0, 0, 0);
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            padding: 30px 15px;
         }
 
-        .container {
+        /* 外部主标题 */
+        .main-title {
+            font-size: 24px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #111;
+            width: 100%;
+        }
+
+        /* 主体卡片容器 */
+        .card {
+            background-color: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            padding: 30px 24px;
             width: 100%;
             max-width: 480px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 40px 20px 30px;
+        }
+
+        /* 鸡汤文本展示区 */
+        .quote-box {
+            width: 100%;
+            min-height: 200px; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center; 
+            align-items: flex-start;
+            margin-bottom: 30px;
             position: relative;
         }
 
-        .quote-box {
-            width: 100%;
-            min-height: 250px; 
-            display: flex;
-            /* 改为 flex-start 让整体靠左对齐，如果想居中偏左可以留着 center */
-            justify-content: flex-start; 
-            align-items: center;
-            margin-bottom: 40px;
-            padding: 0 20px;
+        /* 装饰性引号背景 */
+        .quote-mark {
+            font-size: 60px;
+            color: #f0f0f0;
+            font-family: Georgia, serif;
+            line-height: 1;
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            z-index: 0;
         }
 
         .quote-text {
-            font-size: 24px;
+            font-size: 22px;
             line-height: 1.6;
-            color: #333;
+            color: #222;
             font-weight: 500;
-            /* 重点修改：文字左对齐 */
-            text-align: left; 
-            transition: opacity 0.5s ease;
+            text-align: justify; 
+            transition: opacity 0.4s ease;
             opacity: 1;
+            z-index: 1;
+            position: relative;
+            width: 100%;
         }
 
         .quote-text.fade-out {
             opacity: 0;
         }
 
+        /* 按钮组 */
         .button-group {
             width: 100%;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            gap: 15px; 
+            gap: 15px;
         }
 
-        .nav-btn {
-            width: 250px;
+        /* 核心按钮样式 */
+        .btn {
+            width: 100%;
             height: 50px;
-            padding: 0 10px;
-            font-size: 20px;
-            color: rgb(142, 142, 142);
-            background-color: transparent;
-            border: 1px solid rgb(243, 243, 243);
-            border-radius: 15px; 
-            box-shadow: 1px 1px 5px rgb(191, 191, 191); 
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            
-            /* 重点保留：按钮内部元素居中对齐 */
+            border-radius: 25px; /* 药丸形状 */
+            font-size: 18px;
+            font-weight: 600;
             display: flex;
             justify-content: center;
             align-items: center;
-            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
             outline: none;
+            text-decoration: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .nav-btn:active {
-            opacity: 0.6;
-            box-shadow: none;
-        }
-        
+        /* 主要按钮（再喝一碗） */
         .primary-btn {
-            color: #555;
-            font-weight: bold;
+            background-color: #2c2c2e;
+            color: #fff;
+            border: none;
+            box-shadow: 0 4px 10px rgba(44, 44, 46, 0.2);
         }
+
+        .primary-btn:active {
+            transform: scale(0.96);
+            background-color: #1a1a1b;
+        }
+
+        /* 返回按钮 */
+        .back-btn {
+            margin-top: 20px;
+            width: 250px;
+            height: 50px;
+            font-size: 20px;
+            color: rgb(150, 150, 150);
+            background-color: #fff;
+            border: 1px solid rgb(243, 243, 243);
+            border-radius: 15px; 
+            box-shadow: 1px 1px 5px rgb(191, 191, 191); 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        .back-btn:active { 
+            background-color: #f0f0f0; 
+            transform: translateY(2px);
+        }
+
     </style>
 </head>
 <body>
 
-    <div class="container">
+    <h1 class="main-title">心灵（乌）鸡汤</h1>
+
+    <div class="card">
         
         <div class="quote-box">
+            <div class="quote-mark">“</div>
             <div id="quote-text" class="quote-text">正在熬制鸡汤...</div>
         </div>
 
         <div class="button-group">
-            <button id="refresh-btn" class="nav-btn primary-btn">再干一碗</button>
-            <a href="../index.html" class="nav-btn">返回主页</a>
+            <button id="refresh-btn" class="btn primary-btn">再喝一碗</button>
         </div>
 
     </div>
+
+    <a href="../index.html" class="back-btn">返回主页</a>
 
     <script src="data.js"></script>
 
@@ -122,18 +179,32 @@
         const refreshBtn = document.getElementById('refresh-btn');
 
         function generateQuote() {
+            // 防止快速连点导致文字闪烁异常
+            refreshBtn.style.pointerEvents = 'none';
             quoteElement.classList.add('fade-out');
 
             setTimeout(() => {
-                // 这里的 soulQuotes 就是从 data.js 里读取出来的
-                const randomIndex = Math.floor(Math.random() * soulQuotes.length);
-                quoteElement.innerText = soulQuotes[randomIndex];
+                // 安全检查：确保 data.js 成功加载并且有数据
+                if (typeof soulQuotes !== 'undefined' && soulQuotes.length > 0) {
+                    const randomIndex = Math.floor(Math.random() * soulQuotes.length);
+                    quoteElement.innerText = soulQuotes[randomIndex];
+                } else {
+                    quoteElement.innerText = "网络开小差了，获取数据失败...";
+                }
                 
                 quoteElement.classList.remove('fade-out');
-            }, 300);
+                
+                // 等待淡入动画完成后，恢复按钮点击
+                setTimeout(() => {
+                    refreshBtn.style.pointerEvents = 'auto';
+                }, 400);
+
+            }, 300); // 这里的 300ms 是等待 CSS fade-out 动画变透明的时间
         }
 
         refreshBtn.addEventListener('click', generateQuote);
+        
+        // 页面加载完成后自动生成第一句话
         window.onload = generateQuote;
     </script>
 </body>

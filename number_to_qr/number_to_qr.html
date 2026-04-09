@@ -2,70 +2,158 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>纯原生HTML5数字二维码生成器</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>数字生成二维码</title>
     <style>
+        /* 基础重置与规范 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #f4f6f8;
+            background-color: #f5f6f8; /* 浅灰背景色 */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #333;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             min-height: 100vh;
-            margin: 0;
+            padding: 30px 15px;
         }
-        .card {
-            background: white;
-            padding: 2rem;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+
+        /* 外部主标题 */
+        .main-title {
+            font-size: 22px;
+            font-weight: 600;
             text-align: center;
-            width: 90%;
-            max-width: 320px;
-        }
-        h2 { margin-top: 0; color: #333; }
-        input {
+            margin-bottom: 20px;
+            color: #111;
             width: 100%;
-            padding: 12px;
-            font-size: 1.2rem;
-            text-align: center;
-            border: 2px solid #e1e4e8;
-            border-radius: 8px;
-            box-sizing: border-box;
-            outline: none;
-            transition: 0.3s;
+            line-height: 1.4;
+        }
+
+        .main-title span {
+            font-size: 14px;
+            font-weight: 400;
+            color: #666;
+            display: block;
+            margin-top: 4px;
+        }
+
+        /* 主体卡片容器 */
+        .card {
+            background-color: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            padding: 24px 20px;
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 输入框样式 */
+        input[type="text"] {
+            width: 100%;
+            height: 50px;
+            background-color: #f4f5f7;
+            border: 1px solid transparent;
+            border-radius: 12px;
+            padding: 0 16px;
+            font-size: 18px;
+            color: #333;
             font-family: monospace;
             letter-spacing: 2px;
+            text-align: center;
+            outline: none;
+            transition: all 0.2s ease;
         }
-        input:focus { border-color: #2563eb; }
+
+        input[type="text"]:focus {
+            background-color: #fff;
+            border-color: #007aff;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+        }
+
+        /* 二维码展示区包装 */
+        .canvas-wrapper {
+            margin-top: 24px;
+            padding: 15px;
+            background-color: #f9f9fa;
+            border-radius: 12px;
+            border: 1px solid #eaeaea;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+
         canvas {
-            margin-top: 20px;
-            border: 1px solid #eee;
-            border-radius: 4px;
             background: white;
             max-width: 100%;
             height: auto;
+            border-radius: 4px;
+            display: block; /* 去除底部间隙 */
         }
+
+        /* 状态提示 */
         .status {
-            margin-top: 10px;
-            font-size: 0.85rem;
+            margin-top: 16px;
+            font-size: 14px;
             color: #666;
-            min-height: 1.2em;
+            min-height: 20px;
+            text-align: center;
+            font-weight: 500;
+            width: 100%;
+            word-break: break-all;
         }
+
+        /* 返回按钮 */
+        .back-btn {
+            margin-top: 20px;
+            width: 250px;
+            height: 50px;
+            font-size: 20px;
+            color: rgb(150, 150, 150);
+            background-color: #fff;
+            border: 1px solid rgb(243, 243, 243);
+            border-radius: 15px; 
+            box-shadow: 1px 1px 5px rgb(191, 191, 191); 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        .back-btn:active { 
+            background-color: #f0f0f0; 
+            transform: translateY(2px);
+        }
+
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>纯原生二维码生成</h2>
-    <p style="font-size:0.8rem; color:#888;">无外部库 | 仅支持纯数字</p>
-    
-    <input type="text" id="numInput" placeholder="输入 0-9 数字" maxlength="255" inputmode="numeric">
-    
-    <canvas id="qrCanvas" width="200" height="200"></canvas>
-    <div class="status" id="statusMsg">请输入数字进行生成</div>
-</div>
+    <h1 class="main-title">
+        数字生成二维码
+        <span>仅支持纯数字</span>
+    </h1>
+
+    <div class="card">
+        <input type="text" id="numInput" placeholder="输入 0-9 数字" maxlength="255" inputmode="numeric">
+        
+        <div class="canvas-wrapper">
+            <canvas id="qrCanvas" width="200" height="200"></canvas>
+        </div>
+        
+        <div class="status" id="statusMsg">请输入数字进行生成</div>
+    </div>
+
+    <a href="../index.html" class="back-btn">返回主页</a>
 
 <script>
 /**
@@ -144,7 +232,6 @@ const QRCodeNative = (function() {
     }
 
     function calculateEC(dataBits, version) {
-        // 修复：V5 的总容量应为 134
         const totalBytesArr = [0, 26, 44, 70, 100, 134]; 
         const dataCount = [0, 19, 34, 55, 80, 108][version];
         const ecCount = totalBytesArr[version] - dataCount;
@@ -187,7 +274,7 @@ const QRCodeNative = (function() {
             }
         };
         
-        // 【新增修复】 2. 定位图案的白色保护区 (Separator)
+        // 2. 定位图案的白色保护区 (Separator)
         const placeSeparators = () => {
             for (let i = 0; i < 8; i++) {
                 // 左上
@@ -274,10 +361,10 @@ const QRCodeNative = (function() {
             }
         }
 
-        // 【修复】9. 写入正确的格式信息位序 (从最高位到最低位)
+        // 9. 写入正确的格式信息位序
         const formatVal = 0x77C4; 
         for (let i = 0; i < 15; i++) {
-            const bit = (formatVal >> (14 - i)) & 1; // 这里修正了偏移量
+            const bit = (formatVal >> (14 - i)) & 1;
             matrix[coords1[i][0]][coords1[i][1]] = bit;
             matrix[coords2[i][0]][coords2[i][1]] = bit;
         }
@@ -312,7 +399,7 @@ function render() {
 
     if (!text) {
         status.style.color = "#666";
-        status.textContent = "请输入数字";
+        status.textContent = "请输入数字进行生成";
         return;
     }
 
@@ -337,10 +424,10 @@ function render() {
                 }
             }
         }
-        status.style.color = "#16a34a";
+        status.style.color = "#16a34a"; // 成功绿
         status.textContent = `✅ 生成成功 (版本 ${qr.version}, ${text.length} 位数字)`;
     } catch (e) {
-        status.style.color = "#dc2626";
+        status.style.color = "#ff3b30"; // 错误红
         status.textContent = "❌ 错误: " + e.message;
     }
 }
